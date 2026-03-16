@@ -73,7 +73,16 @@ jobs:
 
           sudo /var/ossec/bin/wazuh-control restart
 
+          echo "BEFORE"
+
           sudo cat /var/ossec/etc/ossec.conf
+
+          sudo sed -i '/<\/ossec_config>/q' /var/ossec/etc/ossec.conf
+
+          echo "AFTER"
+
+          sudo cat /var/ossec/etc/ossec.conf
+
       # Download and install integration tests framework.
       - name: Download and install integration tests framework
         run: |
