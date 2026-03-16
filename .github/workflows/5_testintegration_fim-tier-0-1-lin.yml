@@ -60,7 +60,6 @@ jobs:
           if_no_artifact_found: fail
           check_artifacts: true
           search_artifacts: true
-          branch: ${{ env.BRANCH_BASE }}
 
       - name: Install and configure wazuh agent
         run: |
