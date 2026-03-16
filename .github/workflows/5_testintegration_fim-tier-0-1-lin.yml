@@ -7,6 +7,10 @@ on:
         description: 'Base branch'
         required: true
         default: 'main'
+      build_run_id:
+        description: 'Test artifacts from a specific build run (optional, defaults to latest on base_branch)'
+        required: false
+        default: ''
   pull_request:
     paths:
         - ".github/workflows/5_testintegration_fim-tier-0-1-lin.yml"
@@ -48,6 +52,7 @@ jobs:
         uses: dawidd6/action-download-artifact@v6
         with:
           workflow: ${{ env.BUILD_WORKFLOW }}
+          run_id: ${{ inputs.build_run_id }}
           workflow_conclusion: success
           name_is_regexp: true
           name: ${{ env.AGENT_PACKAGE_REGEXP }}
