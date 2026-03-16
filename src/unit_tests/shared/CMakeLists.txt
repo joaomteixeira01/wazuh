@@ -212,7 +212,7 @@ list(APPEND shared_tests_flags "-Wl,--wrap,getDefine_Int -Wl,--wrap,syscom_dispa
                                 -Wl,--wrap=is_fim_shutdown -Wl,--wrap=_imp__dbsync_initialize \
                                 -Wl,--wrap=fim_db_teardown")
 else()
-list(APPEND shared_tests_flags "-Wl,--wrap,getDefine_Int,--wrap,getPrimaryIP \
+list(APPEND shared_tests_flags "-Wl,--wrap,getDefine_Int -Wl,--wrap,getPrimaryIP \
                                 -Wl,--wrap,getpid,--wrap,fcntl")
 endif()
 
