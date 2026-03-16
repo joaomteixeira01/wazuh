@@ -1093,7 +1093,7 @@ InstallLocal()
 
     ### Backup old API
     if [ "X${update_only}" = "Xyes" ]; then
-      ${MAKEBIN} --quiet -C ../api backup INSTALLDIR=${INSTALLDIR} REVISION=${REVISION} WAZUH_GROUP=${WAZUH_GROUP}
+      ${MAKEBIN} --quiet -C ../api backup INSTALLDIR=${INSTALLDIR} WAZUH_GROUP=${WAZUH_GROUP}
     fi
 
     ### Install API
@@ -1101,7 +1101,7 @@ InstallLocal()
 
     ### Restore old API
     if [ "X${update_only}" = "Xyes" ]; then
-      ${MAKEBIN} --quiet -C ../api restore INSTALLDIR=${INSTALLDIR} REVISION=${REVISION} WAZUH_GROUP=${WAZUH_GROUP}
+      ${MAKEBIN} --quiet -C ../api restore INSTALLDIR=${INSTALLDIR} WAZUH_GROUP=${WAZUH_GROUP}
     fi
 
     ### Install router library

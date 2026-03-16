@@ -33,6 +33,8 @@ doUpdatecleanup()
 ##########
 getPreinstalledDirByType()
 {
+    SERVICE_UNIT_PATH=""
+
     # Checking for Systemd
     if hash ps 2>&1 > /dev/null && hash grep 2>&1 > /dev/null && [ -n "$(ps -e | egrep ^\ *1\ .*systemd$)" ]; then
 

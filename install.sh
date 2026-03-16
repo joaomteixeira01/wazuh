@@ -185,13 +185,13 @@ EnableAuthd()
 {
     # Authd toggle.
     NB=$1
-    echo ""
-    $ECHO "  $NB - ${runauthd} ($yes/$no) [$yes]: "
+    AS=""
     if [ "X${USER_ENABLE_AUTHD}" = "X" ]; then
+        echo ""
+        $ECHO "  $NB - ${runauthd} ($yes/$no) [$yes]: "
         read AS
-    else
-        AS=${USER_ENABLE_AUTHD}
     fi
+    AS=${AS:-${USER_ENABLE_AUTHD}}
     echo ""
     case $AS in
         $nomatch)
@@ -211,16 +211,15 @@ EnableAuthd()
 ConfigureBoot()
 {
     NB=$1
+    ANSWER=""
     if [ "X$INSTYPE" != "Xagent" ]; then
 
-        echo ""
-        $ECHO "  $NB- ${startwazuh} ($yes/$no) [$yes]: "
-
         if [ "X${USER_AUTO_START}" = "X" ]; then
+            echo ""
+            $ECHO "  $NB- ${startwazuh} ($yes/$no) [$yes]: "
             read ANSWER
-        else
-            ANSWER=${USER_AUTO_START}
         fi
+        ANSWER=${ANSWER:-${USER_AUTO_START}}
 
         echo ""
         case $ANSWER in
@@ -455,13 +454,14 @@ askForDelete()
 ##########
 AddWhite()
 {
+    ANSWER=""
+    IPS=""
     while :
     do
-        echo ""
-        $ECHO "   - ${addwhite} ($yes/$no)? [$no]: "
-
         # If preloaded vars define whitelist behavior, skip prompt.
         if [ "X${USER_WHITE_LIST}" = "X" ]; then
+            echo ""
+            $ECHO "   - ${addwhite} ($yes/$no)? [$no]: "
             read ANSWER
         else
             ANSWER=${USER_WHITE_LIST}
@@ -477,8 +477,9 @@ AddWhite()
         fi
 
         SET_WHITE_LIST="true"
-        $ECHO "   - ${ipswhite}"
         if [ "X${USER_WHITE_LIST}" = "X" ]; then
+            echo ""
+            $ECHO "   - ${ipswhite}"
             read IPS
         else
             IPS=${USER_WHITE_LIST}
@@ -662,12 +663,17 @@ detectPreinstalledDirForInstallType()
     fi
 
     PRE_TYPE=$(getPreinstalledType)
+    if [ "X$PRE_TYPE" = "X" ]; then
+        PREINSTALLEDDIR=""
+        return 0
+    fi
+
     if [ "X$INSTYPE" = "Xagent" ] && [ "X$PRE_TYPE" != "Xagent" ]; then
         PREINSTALLEDDIR=""
         return 0
     fi
 
-    if [ "X$INSTYPE" != "Xagent" ] && [ "X$PRE_TYPE" = "Xagent" ]; then
+    if [ "X$INSTYPE" != "Xagent" ] && [ "X$PRE_TYPE" != "Xmanager" ]; then
         PREINSTALLEDDIR=""
     fi
 }
@@ -907,7 +913,7 @@ main()
         if [ "X$PREINSTALLEDDIR" != "X" ]; then
             resolveExistingInstallAction
             prepareUpdateState
-        elif [ "X${USER_UPDATE}" = "X" ]; then
+        else
             echo ""
             echo "2- Clean install: no existing ${INSTYPE} installation detected."
         fi
