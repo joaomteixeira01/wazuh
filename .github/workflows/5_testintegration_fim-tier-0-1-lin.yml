@@ -69,12 +69,7 @@ jobs:
             exit 1
           fi
 
-          sudo dpkg -i "${PACKAGE_PATH}" || sudo apt-get install -f -y
-
-          OSSEC_CONF="/var/ossec/etc/ossec.conf"
-          if [ -f "$OSSEC_CONF" ]; then
-            sudo sed -i '0,/<address>.*<\/address>/s//<address>127.0.0.1<\/address>/' "$OSSEC_CONF"
-          fi
+          sudo WAZUH_MANAGER="127.0.0.1" dpkg -i "${PACKAGE_PATH}" || sudo apt-get install -f -y
 
           sudo /var/ossec/bin/wazuh-control restart
       # Download and install integration tests framework.
