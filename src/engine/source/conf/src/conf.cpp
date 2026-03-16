@@ -50,9 +50,10 @@ Conf::Conf(std::shared_ptr<IFileLoader> fileLoader)
     // Geo module
     addUnit<size_t>(key::GEO_SYNC_INTERVAL, "WAZUH_GEO_SYNC_INTERVAL", 360);
     addUnit<std::string>(key::GEO_DB_PATH, "WAZUH_GEO_DB_PATH", (wazuhRoot / "engine/mmdb").c_str());
-    addUnit<std::string>(key::GEO_MANIFEST_URL,
-                         "WAZUH_GEO_MANIFEST_URL",
-                         "https://wazuh-cloud-cti-web-components-dev.s3.us-east-2.amazonaws.com/maxmind_geoip/manifest.json");
+    addUnit<std::string>(
+        key::GEO_MANIFEST_URL,
+        "WAZUH_GEO_MANIFEST_URL",
+        "https://wazuh-cloud-cti-web-components-dev.s3.us-east-2.amazonaws.com/maxmind_geoip/manifest.json");
 
     // Indexer connector
     addUnit<std::vector<std::string>>(key::INDEXER_HOST, "WAZUH_INDEXER_HOSTS", {"http://localhost:9200"});
@@ -61,6 +62,17 @@ Conf::Conf(std::shared_ptr<IFileLoader> fileLoader)
     addUnit<std::vector<std::string>>(key::INDEXER_SSL_CA_BUNDLE, "WAZUH_INDEXER_SSL_CA_BUNDLE", {});
     addUnit<std::string>(key::INDEXER_SSL_CERTIFICATE, "WAZUH_INDEXER_SSL_CERTIFICATE", "");
     addUnit<std::string>(key::INDEXER_SSL_KEY, "WAZUH_INDEXER_SSL_KEY", "");
+    addUnit<size_t>(key::INDEXER_CONNECTOR_MAX_HITS_PER_REQUEST, "WAZUH_INDEXER_CONNECTOR_MAX_HITS_PER_REQUEST", 100);
+    // IOC Sync
+    addUnit<size_t>(key::IOC_INDEXER_CONNECTOR_MAX_RETRIES, "WAZUH_IOC_INDEXER_CONNECTOR_MAX_RETRIES", 3);
+    addUnit<size_t>(key::IOC_INDEXER_CONNECTOR_RETRY_INTERVAL, "WAZUH_IOC_INDEXER_CONNECTOR_RETRY_INTERVAL", 5);
+    addUnit<size_t>(key::IOC_INDEXER_CONNECTOR_IOC_SYNC_BATCH_SIZE, "WAZUH_IOC_INDEXER_CONNECTOR_IOC_SYNC_BATCH_SIZE", 1000);
+    // CM SYnc
+    addUnit<size_t>(key::CMSYNC_INDEXER_CONNECTOR_MAX_RETRIES, "WAZUH_CMSYNC_INDEXER_CONNECTOR_MAX_RETRIES", 3);
+    addUnit<size_t>(key::CMSYNC_INDEXER_CONNECTOR_RETRY_INTERVAL, "WAZUH_CMSYNC_INDEXER_CONNECTOR_RETRY_INTERVAL", 5);
+    // Remote Configuration Sync
+    addUnit<size_t>(key::REMOTE_CONF_INDEXER_CONNECTOR_MAX_RETRIES, "WAZUH_REMOTE_CONF_INDEXER_CONNECTOR_MAX_RETRIES", 3);
+    addUnit<size_t>(key::REMOTE_CONF_INDEXER_CONNECTOR_RETRY_INTERVAL, "WAZUH_REMOTE_CONF_INDEXER_CONNECTOR_RETRY_INTERVAL", 5);
 
     // Raw Event Indexer
     addUnit<bool>(key::RAW_EVENT_INDEXER_ENABLED, "WAZUH_RAW_EVENT_INDEXER_ENABLED", false);

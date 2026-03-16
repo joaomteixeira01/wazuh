@@ -403,7 +403,9 @@ int main(int argc, char* argv[])
                 const auto jsonCnf = base::process::isStandaloneModeEnable()
                                          ? standAloneConfig()
                                          : base::libwazuhshared::getJsonIndexerCnf();
-                indexerConnector = std::make_shared<wiconnector::WIndexerConnector>(jsonCnf);
+                const auto maxHitsPerRequest =
+                    confManager.get<std::size_t>(conf::key::INDEXER_CONNECTOR_MAX_HITS_PER_REQUEST);
+                indexerConnector = std::make_shared<wiconnector::WIndexerConnector>(jsonCnf, maxHitsPerRequest);
                 LOG_INFO("Indexer Connector initialized.");
             }
             catch (const std::exception& e)
@@ -548,7 +550,9 @@ int main(int argc, char* argv[])
         // CMsync
         if (enableProcessing)
         {
-            cmSyncService = std::make_shared<cm::sync::CMSync>(indexerConnector, cmCrudService, store, orchestrator);
+            auto maxRetries = confManager.get<size_t>(conf::key::CMSYNC_INDEXER_CONNECTOR_MAX_RETRIES);
+            auto retryInterval = confManager.get<size_t>(conf::key::CMSYNC_INDEXER_CONNECTOR_RETRY_INTERVAL);
+            cmSyncService = std::make_shared<cm::sync::CMSync>(indexerConnector, cmCrudService, store, orchestrator, maxRetries, retryInterval);
             LOG_INFO("Content Manager Sync Service initialized.");
 
             // Add sync to scheduler
@@ -567,7 +571,11 @@ int main(int argc, char* argv[])
         if (enableProcessing)
         {
             // Create IOC Sync Service
-            iocSyncService = std::make_shared<ioc::sync::IocSync>(indexerConnector, IOCkvdb, store);
+            auto maxRetries = confManager.get<size_t>(conf::key::IOC_INDEXER_CONNECTOR_MAX_RETRIES);
+            auto retryInterval = confManager.get<size_t>(conf::key::IOC_INDEXER_CONNECTOR_RETRY_INTERVAL);
+            auto iocSyncBatchSize = confManager.get<size_t>(conf::key::IOC_INDEXER_CONNECTOR_IOC_SYNC_BATCH_SIZE);
+            iocSyncService = std::make_shared<ioc::sync::IocSync>(
+                indexerConnector, IOCkvdb, store, maxRetries, retryInterval, iocSyncBatchSize);
             LOG_INFO("IOC Sync Service initialized.");
 
             // Add IOC sync to scheduler
@@ -582,7 +590,12 @@ int main(int argc, char* argv[])
                                                                {
                                                                    iocSyncService->synchronize();
                                                                }});
-                LOG_INFO("IOC Sync task scheduled with interval: {} seconds", iocSyncInterval);
+                LOG_INFO("IOC Sync task scheduled with interval: {} seconds, {} max retries, {} seconds for retry "
+                         "interval and {} for batch size",
+                         iocSyncInterval,
+                         maxRetries,
+                         retryInterval,
+                         iocSyncBatchSize);
             }
             else
             {
@@ -631,7 +644,9 @@ int main(int argc, char* argv[])
 
         // Remote runtime settings sync
         {
-            remoteConf = std::make_shared<confremote::ConfRemoteManager>(indexerConnector, store);
+            auto maxRetries = confManager.get<size_t>(conf::key::REMOTE_CONF_INDEXER_CONNECTOR_MAX_RETRIES);
+            auto retryInterval = confManager.get<size_t>(conf::key::REMOTE_CONF_INDEXER_CONNECTOR_RETRY_INTERVAL);
+            remoteConf = std::make_shared<confremote::ConfRemoteManager>(indexerConnector, store, maxRetries, retryInterval);
 
             const auto remoteConfSyncInterval = confManager.get<std::size_t>(conf::key::REMOTE_CONF_SYNC_INTERVAL);
             scheduler->scheduleTask("remote-conf-sync",

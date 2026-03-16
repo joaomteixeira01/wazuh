@@ -18,6 +18,8 @@ using ::testing::StrictMock;
 using ::testing::Throw;
 
 constexpr std::string_view REMOTE_INDEX_RAW_EVENTS = "index_raw_events";
+constexpr int attempts = 3;
+constexpr int waitSeconds = 5;
 
 json::Json remoteWith(bool enabled)
 {
@@ -57,14 +59,14 @@ TEST(ConfRemoteManagerUnitTest, CanConstructWithStoreAndNullConnector)
 {
     auto store = makeEmptyStore();
     std::shared_ptr<wiconnector::IWIndexerConnector> connector;
-    EXPECT_NO_THROW((confremote::ConfRemoteManager {connector, store}));
+    EXPECT_NO_THROW((confremote::ConfRemoteManager {connector, store, attempts, waitSeconds}));
 }
 
 TEST(ConfRemoteManagerUnitTest, AddTriggerReturnsDefaultWhenStoreIsEmpty)
 {
     auto store = makeEmptyStore();
     auto connector = std::make_shared<StrictMock<wiconnector::mocks::MockWIndexerConnector>>();
-    confremote::ConfRemoteManager manager(connector, store);
+    confremote::ConfRemoteManager manager(connector, store, attempts, waitSeconds);
 
     const json::Json defaultVal("false");
     const auto result = manager.addTrigger(REMOTE_INDEX_RAW_EVENTS, [](const json::Json&) { return true; }, defaultVal);
@@ -76,7 +78,7 @@ TEST(ConfRemoteManagerUnitTest, AddTriggerReturnsPersistedValueWhenStoreHasCache
 {
     auto store = makeCachedStore(REMOTE_INDEX_RAW_EVENTS, json::Json("true"));
     auto connector = std::make_shared<StrictMock<wiconnector::mocks::MockWIndexerConnector>>();
-    confremote::ConfRemoteManager manager(connector, store);
+    confremote::ConfRemoteManager manager(connector, store, attempts, waitSeconds);
 
     const auto result =
         manager.addTrigger(REMOTE_INDEX_RAW_EVENTS, [](const json::Json&) { return true; }, json::Json("false"));
@@ -92,7 +94,7 @@ TEST(ConfRemoteManagerUnitTest, SynchronizeSkipsCallbackWhenValueDoesNotChange)
     auto connector = std::make_shared<StrictMock<wiconnector::mocks::MockWIndexerConnector>>();
     EXPECT_CALL(*connector, getEngineRemoteConfig()).WillOnce(Return(remoteWith(false)));
 
-    confremote::ConfRemoteManager manager(connector, store);
+    confremote::ConfRemoteManager manager(connector, store, attempts, waitSeconds);
 
     int calls = 0;
     manager.addTrigger(
@@ -118,7 +120,7 @@ TEST(ConfRemoteManagerUnitTest, SynchronizeNotifiesWhenValueChanges)
     auto connector = std::make_shared<StrictMock<wiconnector::mocks::MockWIndexerConnector>>();
     EXPECT_CALL(*connector, getEngineRemoteConfig()).WillOnce(Return(remoteWith(true)));
 
-    confremote::ConfRemoteManager manager(connector, store);
+    confremote::ConfRemoteManager manager(connector, store, attempts, waitSeconds);
 
     bool captured = false;
     manager.addTrigger(
@@ -144,7 +146,7 @@ TEST(ConfRemoteManagerUnitTest, RejectedCallbackDoesNotCommitValue)
     auto connector = std::make_shared<StrictMock<wiconnector::mocks::MockWIndexerConnector>>();
     EXPECT_CALL(*connector, getEngineRemoteConfig()).WillOnce(Return(remoteWith(true)));
 
-    confremote::ConfRemoteManager manager(connector, store);
+    confremote::ConfRemoteManager manager(connector, store, attempts, waitSeconds);
 
     int calls = 0;
     manager.addTrigger(
@@ -173,7 +175,7 @@ TEST(ConfRemoteManagerUnitTest, SynchronizeCallbackRejectsWrongTypeAndPreservesC
         EXPECT_CALL(*connector, getEngineRemoteConfig()).WillOnce(Return(remoteWithStringValue()));
     }
 
-    confremote::ConfRemoteManager manager(connector, store);
+    confremote::ConfRemoteManager manager(connector, store, attempts, waitSeconds);
 
     std::vector<bool> accepted;
     manager.addTrigger(
@@ -202,7 +204,7 @@ TEST(ConfRemoteManagerUnitTest, SynchronizeWithFetchFailureKeepsCurrentState)
     auto connector = std::make_shared<StrictMock<wiconnector::mocks::MockWIndexerConnector>>();
     EXPECT_CALL(*connector, getEngineRemoteConfig()).WillRepeatedly(Throw(std::runtime_error("network down")));
 
-    confremote::ConfRemoteManager manager(connector, store);
+    confremote::ConfRemoteManager manager(connector, store, attempts, waitSeconds);
 
     int calls = 0;
     manager.addTrigger(
@@ -226,7 +228,7 @@ TEST(ConfRemoteManagerUnitTest, SynchronizeIgnoresUnregisteredKeys)
     auto connector = std::make_shared<StrictMock<wiconnector::mocks::MockWIndexerConnector>>();
     EXPECT_CALL(*connector, getEngineRemoteConfig()).WillOnce(Return(remoteWith(true)));
 
-    confremote::ConfRemoteManager manager(connector, store);
+    confremote::ConfRemoteManager manager(connector, store, attempts, waitSeconds);
     // No addTrigger call
 
     EXPECT_NO_THROW(manager.synchronize());
@@ -241,7 +243,7 @@ TEST(ConfRemoteManagerUnitTest, SynchronizeIgnoresCachedKeysWithoutRegisteredCal
     auto connector = std::make_shared<StrictMock<wiconnector::mocks::MockWIndexerConnector>>();
     EXPECT_CALL(*connector, getEngineRemoteConfig()).WillOnce(Return(remoteWith(true)));
 
-    confremote::ConfRemoteManager manager(connector, store);
+    confremote::ConfRemoteManager manager(connector, store, attempts, waitSeconds);
     // No addTrigger call — key loaded from store but no callback registered
 
     EXPECT_NO_THROW(manager.synchronize());
@@ -251,7 +253,7 @@ TEST(ConfRemoteManagerUnitTest, SynchronizeWithNullConnectorDoesNotThrow)
 {
     auto store = makeEmptyStore();
     std::shared_ptr<wiconnector::IWIndexerConnector> connector;
-    confremote::ConfRemoteManager manager(connector, store);
+    confremote::ConfRemoteManager manager(connector, store, attempts, waitSeconds);
 
     EXPECT_NO_THROW(manager.synchronize());
 }
@@ -268,7 +270,7 @@ TEST(ConfRemoteManagerUnitTest, SynchronizeRemovedKeyKeepsCurrentState)
         EXPECT_CALL(*connector, getEngineRemoteConfig()).WillOnce(Return(emptyRemote()));
     }
 
-    confremote::ConfRemoteManager manager(connector, store);
+    confremote::ConfRemoteManager manager(connector, store, attempts, waitSeconds);
 
     std::vector<bool> values;
     manager.addTrigger(
@@ -301,7 +303,7 @@ TEST(ConfRemoteManagerUnitTest, AddTriggerAfterFirstSynchronizeIsAppliedOnNextSy
         EXPECT_CALL(*connector, getEngineRemoteConfig()).WillOnce(Return(remoteWith(true)));
     }
 
-    confremote::ConfRemoteManager manager(connector, store);
+    confremote::ConfRemoteManager manager(connector, store, attempts, waitSeconds);
     manager.synchronize(); // trigger not yet registered -> key ignored
 
     int calls = 0;

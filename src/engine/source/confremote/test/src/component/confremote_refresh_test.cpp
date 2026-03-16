@@ -18,6 +18,8 @@ using ::testing::Return;
 using ::testing::StrictMock;
 
 constexpr std::string_view REMOTE_INDEX_RAW_EVENTS = "index_raw_events";
+constexpr int attempts = 3;
+constexpr int waitSeconds = 5;
 
 } // namespace
 
@@ -34,7 +36,7 @@ TEST(ConfRemoteRefreshComponentTest, SynchronizePropagatesChangedValue)
         EXPECT_CALL(*connector, getEngineRemoteConfig()).WillOnce(Return(json::Json(R"({"index_raw_events":true})")));
     }
 
-    confremote::ConfRemoteManager manager(connector, store);
+    confremote::ConfRemoteManager manager(connector, store, attempts, waitSeconds);
 
     std::vector<bool> received;
     manager.addTrigger(
@@ -46,7 +48,7 @@ TEST(ConfRemoteRefreshComponentTest, SynchronizePropagatesChangedValue)
             received.push_back(v.getBool().value());
             return true;
         },
-        json::Json("false"));
+        json::Json("false")), attempts, waitSeconds;
 
     manager.synchronize();
 
@@ -78,7 +80,7 @@ TEST(ConfRemoteRefreshComponentTest, PersistedValueIsReturnedByAddTriggerOnRecre
     EXPECT_CALL(*connector, getEngineRemoteConfig()).WillOnce(Return(json::Json(R"({"index_raw_events":true})")));
 
     {
-        confremote::ConfRemoteManager manager(connector, store1);
+        confremote::ConfRemoteManager manager(connector, store1, attempts, waitSeconds);
         manager.addTrigger(REMOTE_INDEX_RAW_EVENTS, [](const json::Json&) { return true; }, json::Json("false"));
         manager.synchronize();
     }
@@ -91,7 +93,7 @@ TEST(ConfRemoteRefreshComponentTest, PersistedValueIsReturnedByAddTriggerOnRecre
     EXPECT_CALL(*store2, readDoc(_)).WillOnce(Return(store::mocks::storeReadDocResp(capturedDoc.value())));
 
     std::shared_ptr<wiconnector::IWIndexerConnector> nullConnector;
-    confremote::ConfRemoteManager manager2(nullConnector, store2);
+    confremote::ConfRemoteManager manager2(nullConnector, store2, attempts, waitSeconds);
 
     const auto result =
         manager2.addTrigger(REMOTE_INDEX_RAW_EVENTS, [](const json::Json&) { return true; }, json::Json("false"));
