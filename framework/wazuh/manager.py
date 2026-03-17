@@ -8,11 +8,11 @@ from os.path import exists
 from wazuh import Wazuh
 from wazuh.core import common, configuration
 from wazuh.core.cluster.cluster import get_node
-from wazuh.core.cluster.utils import manager_restart, running_in_master_node
+from wazuh.core.cluster.utils import manager_restart, manager_reload, running_in_master_node
 from wazuh.core.configuration import get_ossec_conf, write_ossec_conf
 from wazuh.core.exception import WazuhError, WazuhInternalError
 from wazuh.core.manager import status, get_api_conf, get_update_information_template, get_ossec_logs, \
-    get_logs_summary, validate_ossec_conf, OSSEC_LOG_FIELDS
+    get_logs_summary, validate_ossec_conf, OSSEC_LOG_FIELDS, query_update_check_service as query_update_check_service_core
 from wazuh.core.results import AffectedItemsWazuhResult, WazuhResult
 from wazuh.core.utils import process_array, safe_move, validate_wazuh_xml, full_copy
 from wazuh.rbac.decorators import expose_resources, mask_sensitive_config
@@ -193,6 +193,36 @@ def restart() -> AffectedItemsWazuhResult:
     return result
 
 
+_reload_default_result_kwargs = {
+    'all_msg': f"Reload request sent to {'all specified nodes' if node_id != 'manager' else ''}",
+    'some_msg': "Could not send reload request to some specified nodes",
+    'none_msg': "Could not send reload request to any node",
+    'sort_casting': ['str']
+}
+
+
+@expose_resources(actions=['cluster:read'], resources=[f'node:id:{node_id}'])
+@expose_resources(actions=['cluster:restart'], resources=[f'node:id:{node_id}'],
+                  post_proc_kwargs={'default_result_kwargs': _reload_default_result_kwargs})
+def reload() -> AffectedItemsWazuhResult:
+    """Wrapper for 'reload_manager' function due to interdependence with cluster module and permission access.
+
+    Returns
+    -------
+    AffectedItemsWazuhResult
+        Affected items.
+    """
+    result = AffectedItemsWazuhResult(**_reload_default_result_kwargs)
+    try:
+        manager_reload()
+        result.affected_items.append(node_id)
+    except (WazuhError, WazuhInternalError) as e:
+        result.add_failed_item(id_=node_id, error=e)
+    result.total_affected_items = len(result.affected_items)
+
+    return result
+
+
 _validation_default_result_kwargs = {
     'all_msg': f"Validation was successfully checked{' in all nodes' if node_id != 'manager' else ''}",
     'some_msg': 'Could not check validation in some nodes',
@@ -225,8 +255,8 @@ def validation() -> AffectedItemsWazuhResult:
     return result
 
 
-@expose_resources(actions=['cluster:read'], resources=[f'node:id:{node_id}'])
 @mask_sensitive_config()
+@expose_resources(actions=["cluster:read"], resources=f'node:id:{node_id}')
 def get_config(component: str = None, config: str = None) -> AffectedItemsWazuhResult:
     """Wrapper for get_active_configuration.
 
@@ -260,8 +290,8 @@ def get_config(component: str = None, config: str = None) -> AffectedItemsWazuhR
     return result
 
 
-@expose_resources(actions=['cluster:read'], resources=[f'node:id:{node_id}'])
 @mask_sensitive_config()
+@expose_resources(actions=["cluster:read"], resources=f'node:id:{node_id}')
 def read_ossec_conf(section: str = None, field: str = None, raw: bool = False,
                     distinct: bool = False) -> AffectedItemsWazuhResult:
     """Wrapper for get_ossec_conf.
@@ -369,10 +399,9 @@ def update_ossec_conf(new_conf: str = None) -> AffectedItemsWazuhResult:
         write_ossec_conf(new_conf)
         is_valid = validate_ossec_conf()
 
-        if not isinstance(is_valid, dict) or ('status' in is_valid and is_valid['status'] != 'OK'):
+        if is_valid.get('status') != 'OK':
             raise WazuhError(1125)
-        else:
-            result.affected_items.append(node_id)
+        result.affected_items.append(node_id)
         exists(backup_file) and remove(backup_file)
     except WazuhError as e:
         result.add_failed_item(id_=node_id, error=e)
@@ -413,3 +442,15 @@ def get_update_information(installation_uid: str, update_information: dict) -> W
     update_information.pop('message', None)
 
     return WazuhResult({'data': update_information})
+
+
+@expose_resources(actions=['manager:read'], resources=['*:*:*'])
+async def query_update_check_service(installation_uid: str) -> dict:
+    """Query the update check service and return the information.
+
+    Returns
+    -------
+    WazuhResult
+        Result with update information.
+    """
+    return (await query_update_check_service_core(installation_uid))

@@ -52,18 +52,28 @@ tags:
     - logs
     - logging
 """
+
 import pytest
 from pathlib import Path
 
 from . import CONFIGURATIONS_FOLDER_PATH, TEST_CASES_FOLDER_PATH
 from wazuh_testing.constants.api import CONFIGURATION_TYPES, WAZUH_API_USER, LOGIN_ROUTE
 from wazuh_testing.constants.daemons import API_DAEMONS_REQUIREMENTS
-from wazuh_testing.constants.paths.logs import WAZUH_API_JSON_LOG_FILE_PATH, WAZUH_API_LOG_FILE_PATH
-from wazuh_testing.modules.api.patterns import API_TIMEOUT_ERROR_MSG, API_LOGIN_REQUEST_MSG
+from wazuh_testing.constants.paths.logs import (
+    WAZUH_API_JSON_LOG_FILE_PATH,
+    WAZUH_API_LOG_FILE_PATH,
+)
+from wazuh_testing.modules.api.patterns import (
+    API_TIMEOUT_ERROR_MSG,
+    API_LOGIN_REQUEST_MSG,
+)
 from wazuh_testing.modules.api.utils import login
 from wazuh_testing.tools.monitors import file_monitor
 from wazuh_testing.utils.callbacks import generate_callback
-from wazuh_testing.utils.configuration import get_test_cases_data, load_configuration_template
+from wazuh_testing.utils.configuration import (
+    get_test_cases_data,
+    load_configuration_template,
+)
 
 
 # Marks
@@ -74,19 +84,34 @@ pytestmark = pytest.mark.server
 configuration_type = CONFIGURATION_TYPES[0]
 
 # Paths
-test_configuration_path = Path(CONFIGURATIONS_FOLDER_PATH, 'configuration_logs_format.yaml')
-test_cases_path = Path(TEST_CASES_FOLDER_PATH, 'cases_logs_format.yaml')
+test_configuration_path = Path(
+    CONFIGURATIONS_FOLDER_PATH, "configuration_logs_format.yaml"
+)
+test_cases_path = Path(TEST_CASES_FOLDER_PATH, "cases_logs_format.yaml")
 
 # Configurations
 test_configuration, test_metadata, test_cases_ids = get_test_cases_data(test_cases_path)
-test_configuration = load_configuration_template(test_configuration_path, test_configuration, test_metadata)
-daemons_handler_configuration = {'daemons': API_DAEMONS_REQUIREMENTS}
+test_configuration = load_configuration_template(
+    test_configuration_path, test_configuration, test_metadata
+)
+daemons_handler_configuration = {"daemons": API_DAEMONS_REQUIREMENTS}
 
 
 # Tests
 @pytest.mark.tier(level=1)
-@pytest.mark.parametrize('test_configuration,test_metadata', zip(test_configuration, test_metadata), ids=test_cases_ids)
-def test_logs_formats(test_configuration, test_metadata, add_configuration, truncate_monitored_files, daemons_handler):
+@pytest.mark.parametrize(
+    "test_configuration,test_metadata",
+    zip(test_configuration, test_metadata),
+    ids=test_cases_ids,
+)
+def test_logs_formats(
+    test_configuration,
+    test_metadata,
+    add_configuration,
+    truncate_monitored_files,
+    daemons_handler,
+    wait_for_api_start,
+):
     """
     description: Check if the logs of the API are stored in the specified formats and the content of the log
                  files are the expected.
@@ -141,49 +166,54 @@ def test_logs_formats(test_configuration, test_metadata, add_configuration, trun
         - logs
         - logging
     """
-    current_formats = test_configuration['blocks']['logs']['format'].split(',')
-    current_level = test_configuration['blocks']['logs']['level']
-    expected_code = test_metadata['expected_code']
+    current_formats = test_configuration["blocks"]["logs"]["format"].split(",")
+    current_level = test_configuration["blocks"]["logs"]["level"]
+    expected_code = test_metadata["expected_code"]
 
-    if current_level == 'error':
+    if current_level == "error":
         with pytest.raises(RuntimeError) as exception:
             login(timeout=10, login_attempts=5)
         response = exception.value.args[1]
     else:
         _, response = login(timeout=10, login_attempts=5)
 
-    assert response.status_code == expected_code, f"The status code was {response.status_code}." \
-                                                  f"\nExpected: {expected_code}."
+    assert response.status_code == expected_code, (
+        f"The status code was {response.status_code}.\nExpected: {expected_code}."
+    )
 
     # Check whether the expected event exists in the log files according to the configured levels
-    if 'json' in current_formats:
+    if "json" in current_formats:
         json_file_monitor = file_monitor.FileMonitor(WAZUH_API_JSON_LOG_FILE_PATH)
-        if current_level == 'error':
+        if current_level == "error":
             json_file_monitor.start(callback=generate_callback(API_TIMEOUT_ERROR_MSG))
-            assert json_file_monitor.callback_result is not None, f"The message '{API_TIMEOUT_ERROR_MSG}' " \
-                                                                  'did not appear in the logs.'
-        else:
-            json_file_monitor.start(callback=generate_callback(API_LOGIN_REQUEST_MSG, {
-                    'user': WAZUH_API_USER,
-                    'host': '::1',
-                    'login_route': LOGIN_ROUTE
-                })
+            assert json_file_monitor.callback_result is not None, (
+                f"The message '{API_TIMEOUT_ERROR_MSG}' did not appear in the logs."
             )
-            assert json_file_monitor.callback_result is not None, f"The message '{API_LOGIN_REQUEST_MSG}' " \
-                                                                  'did not appear in the logs.'
+        else:
+            json_file_monitor.start(
+                callback=generate_callback(
+                    API_LOGIN_REQUEST_MSG,
+                    {"user": WAZUH_API_USER, "host": "::1", "login_route": LOGIN_ROUTE},
+                )
+            )
+            assert json_file_monitor.callback_result is not None, (
+                f"The message '{API_LOGIN_REQUEST_MSG}' did not appear in the logs."
+            )
 
-    if 'plain' in current_formats:
+    if "plain" in current_formats:
         plain_file_monitor = file_monitor.FileMonitor(WAZUH_API_LOG_FILE_PATH)
-        if current_level == 'error':
+        if current_level == "error":
             plain_file_monitor.start(callback=generate_callback(API_TIMEOUT_ERROR_MSG))
-            assert plain_file_monitor.callback_result is not None, f"The message '{API_TIMEOUT_ERROR_MSG}' " \
-                                                                   'did not appear in the logs.'
-        else:
-            plain_file_monitor.start(callback=generate_callback(API_LOGIN_REQUEST_MSG, {
-                    'user': WAZUH_API_USER,
-                    'host': '::1',
-                    'login_route': LOGIN_ROUTE
-                })
+            assert plain_file_monitor.callback_result is not None, (
+                f"The message '{API_TIMEOUT_ERROR_MSG}' did not appear in the logs."
             )
-            assert plain_file_monitor.callback_result is not None, f"The message '{API_LOGIN_REQUEST_MSG}' " \
-                                                                   'did not appear in the logs.'
+        else:
+            plain_file_monitor.start(
+                callback=generate_callback(
+                    API_LOGIN_REQUEST_MSG,
+                    {"user": WAZUH_API_USER, "host": "::1", "login_route": LOGIN_ROUTE},
+                )
+            )
+            assert plain_file_monitor.callback_result is not None, (
+                f"The message '{API_LOGIN_REQUEST_MSG}' did not appear in the logs."
+            )
