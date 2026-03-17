@@ -394,8 +394,6 @@ curl -k -X GET "https://localhost:55000/tasks/status?pretty=true" \
 | GET | `/cluster/{node_id}/stats` | Node stats |
 | GET | `/cluster/{node_id}/stats/hourly` | Hourly stats |
 | GET | `/cluster/{node_id}/stats/weekly` | Weekly stats |
-| GET | `/cluster/{node_id}/stats/analysisd` | Analysisd stats |
-| GET | `/cluster/{node_id}/stats/remoted` | Remoted stats |
 | GET | `/cluster/{node_id}/logs` | Node logs |
 | GET | `/cluster/{node_id}/logs/summary` | Log summary |
 
