@@ -96,10 +96,10 @@ Feature: Tester API Management
     Given I have no tester sessions
     When I validate a full policy with load_in_tester enabled
     And I request logtest cleanup
-    Then the "testing" session should not exist
-    And no "policy_validate_" namespaces should exist
+    Then the "test" session should not exist
+    And no "logtest_" namespaces should exist
 
   Scenario: Cleanup logtest is idempotent when nothing exists
     Given I have no tester sessions
     When I request logtest cleanup
-    Then the "testing" session should not exist
+    Then the "test" session should not exist
