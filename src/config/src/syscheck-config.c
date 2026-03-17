@@ -1655,6 +1655,9 @@ int Read_Syscheck(const OS_XML *xml, XML_NODE node, void *configp, __attribute__
 #ifdef WIN32
     const char *xml_registry_ignore_value = "registry_ignore_value";
 #endif
+    const char *xml_auto_ignore = "auto_ignore"; // TODO: Deprecated since 3.11.0
+    const char *xml_alert_new_files = "alert_new_files"; // TODO: Deprecated since 3.11.0
+    const char *xml_remove_old_diff = "remove_old_diff"; // Deprecated since 3.8.0
     const char *xml_disabled = "disabled";
     const char *xml_skip_nfs = "skip_nfs";
     const char *xml_skip_dev = "skip_dev";
@@ -2020,6 +2023,25 @@ int Read_Syscheck(const OS_XML *xml, XML_NODE node, void *configp, __attribute__
                 process_option(&syscheck->nodiff, node[i]);
             }
 
+        } else if (strcmp(node[i]->element, xml_auto_ignore) == 0) {
+            /* auto_ignore is not read here */
+        } else if (strcmp(node[i]->element, xml_alert_new_files) == 0) {
+            /* alert_new_files option is not read here */
+        } else if (strcmp(node[i]->element, "prefilter_cmd") == 0) {
+            mwarn("Deprecated option 'prefilter_cmd' is not longer available.");
+        } else if (strcmp(node[i]->element, xml_remove_old_diff) == 0) {
+            // Deprecated since 3.8.0, aplied by default...
+        } else if (strcmp(node[i]->element, xml_restart_audit) == 0) {
+            // To be deprecated. This field is now read inside the <whodata> block.
+            if(strcmp(node[i]->content, "yes") == 0)
+                syscheck->restart_audit = 1;
+            else if(strcmp(node[i]->content, "no") == 0)
+                syscheck->restart_audit = 0;
+            else
+            {
+                mwarn(XML_VALUEERR,node[i]->element,node[i]->content);
+                return(OS_INVALID);
+            }
         }
         /* Whodata options */
         else if (strcmp(node[i]->element, xml_whodata_options) == 0) {
