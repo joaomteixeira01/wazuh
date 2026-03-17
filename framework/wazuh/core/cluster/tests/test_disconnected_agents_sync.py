@@ -19,7 +19,12 @@ with patch("wazuh.core.common.wazuh_uid"), patch("wazuh.core.common.wazuh_gid"):
     wazuh.rbac.decorators.expose_resources = RBAC_bypasser
 
     from wazuh.core.cluster.master import DisconnectedAgentSyncTasks
-    from wazuh.core.exception import WazuhError
+    from wazuh.core.exception import (
+        IndexerUnavailableError,
+        WazuhError,
+        WazuhIndexerError,
+    )
+    from wazuh.core.indexer.indexer import create_indexer
     from wazuh.core.results import AffectedItemsWazuhResult
 
 
@@ -798,3 +803,77 @@ async def test_disconnected_agent_group_sync_unexpected_exception(
 
     assert len(result.failed_items) == 1
     task.logger.error.assert_called()
+
+
+@pytest.mark.asyncio
+async def test_create_indexer_raises_indexer_unavailable_after_retries():
+    """After exhausting all retries, create_indexer must raise IndexerUnavailableError."""
+    with patch("wazuh.core.indexer.indexer.Indexer") as mock_indexer_cls:
+        mock_instance = AsyncMock()
+        mock_instance.connect.side_effect = WazuhIndexerError(2200)
+        mock_instance.close = AsyncMock()
+        mock_indexer_cls.return_value = mock_instance
+
+        with patch("wazuh.core.indexer.indexer.sleep", new_callable=AsyncMock), \
+                patch("wazuh.core.indexer.indexer.random.random", return_value=0):
+            with pytest.raises(IndexerUnavailableError):
+                await create_indexer(retries=3, backoff=0)
+
+        assert mock_instance.connect.call_count == 4  # 1 initial + 3 retries
+        mock_instance.close.assert_called_once()
+
+
+@pytest.mark.asyncio
+async def test_create_indexer_raises_on_typeerror():
+    """A TypeError in Indexer() constructor must be converted to WazuhIndexerError."""
+    with patch("wazuh.core.indexer.indexer.Indexer", side_effect=TypeError("bad arg")):
+        with pytest.raises(WazuhIndexerError, match="Invalid arguments for Indexer"):
+            await create_indexer(hosts=["localhost"], ports=[9200])
+
+
+@pytest.mark.asyncio
+async def test_run_agent_groups_sync_warning_on_indexer_unavailable(task):
+    """run_agent_groups_sync must log a warning and not crash when indexer is unavailable."""
+    with patch.object(
+        task,
+        "_get_disconnected_agents_filter_by_time",
+        return_value=[{"id": "001", "group": ["default"]}],
+    ):
+        with patch.object(
+            task,
+            "_sync_agent_batch",
+            side_effect=IndexerUnavailableError(2200),
+        ):
+            with patch("wazuh.core.indexer.disconnected_agents.asyncio.sleep",
+                       side_effect=[None, asyncio.CancelledError]):
+                with pytest.raises(asyncio.CancelledError):
+                    await task.run_agent_groups_sync()
+
+    task.logger.warning.assert_called()
+    assert "not available" in task.logger.warning.call_args[0][0]
+
+
+@pytest.mark.asyncio
+async def test_run_cluster_name_sync_warning_on_indexer_unavailable(task):
+    """run_cluster_name_sync must log a warning and return without crash."""
+    task.initial_delay = 0
+
+    with patch(
+        "wazuh.core.indexer.disconnected_agents.get_ossec_conf",
+        return_value={"cluster": {"name": "cluster-test"}},
+    ):
+        with patch.object(
+            task,
+            "_get_disconnected_agents",
+            return_value=[{"id": "001"}],
+        ):
+            with patch.object(
+                task,
+                "_get_max_versions_batch_from_indexer",
+                side_effect=IndexerUnavailableError(2200),
+            ):
+                with patch("wazuh.core.indexer.disconnected_agents.asyncio.sleep", return_value=None):
+                    await task.run_cluster_name_sync()
+
+    task.logger.warning.assert_called()
+    assert "not available" in task.logger.warning.call_args[0][0]
