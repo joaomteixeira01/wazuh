@@ -77,7 +77,7 @@ jobs:
 
           sudo cat /var/ossec/etc/ossec.conf
 
-          awk '
+          sudo awk '
             BEGIN { first_close_seen=0 }
             /<\/ossec_config>/ {
               if (!first_close_seen) { first_close_seen=1; next }  # skip first closing tag
