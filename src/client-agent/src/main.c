@@ -112,6 +112,12 @@ int main(int argc, char **argv)
             case 't':
                 test_config = 1;
                 break;
+            case 'D':
+                if (!optarg) {
+                    merror_exit("-D needs an argument");
+                }
+                mwarn("-D is deprecated.");
+                break;
             case 'c':
                 if (!optarg) {
                     merror_exit("-c needs an argument.");
