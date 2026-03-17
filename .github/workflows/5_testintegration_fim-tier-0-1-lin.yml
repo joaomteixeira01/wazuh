@@ -77,7 +77,16 @@ jobs:
 
           sudo cat /var/ossec/etc/ossec.conf
 
-          sudo sed -i '/<\/ossec_config>/q' /var/ossec/etc/ossec.conf
+          awk '
+            BEGIN { first_close_seen=0 }
+            /<\/ossec_config>/ {
+              if (!first_close_seen) { first_close_seen=1; next }  # skip first closing tag
+            }
+            /<ossec_config>/ {
+              if (first_close_seen) { first_close_seen=2; next }   # skip next opening tag
+            }
+            { print }
+          ' /var/ossec/etc/ossec.conf > /tmp/ossec.conf.fixed && sudo mv /tmp/ossec.conf.fixed /var/ossec/etc/ossec.conf
 
           echo "AFTER"
 
