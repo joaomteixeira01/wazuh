@@ -340,7 +340,6 @@ curl -k -X GET "https://localhost:55000/tasks/status?pretty=true" \
 | DELETE | `/agents/{agent_id}/group` | Remove from all groups |
 | PUT | `/agents/{agent_id}/group/{group_id}` | Assign to group |
 | DELETE | `/agents/{agent_id}/group/{group_id}` | Remove from group |
-| GET | `/agents/{agent_id}/group/is_sync` | Sync status |
 | GET | `/agents/{agent_id}/config/{component}/{configuration}` | Active config |
 | GET | `/agents/{agent_id}/daemons/stats` | Daemon stats |
 | GET | `/agents/{agent_id}/stats/{component}` | Component stats |
