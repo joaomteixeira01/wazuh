@@ -307,7 +307,6 @@ int ReadActiveCommands(XML_NODE node, void *d1, __attribute__((unused)) void *d2
 
     /* Xml values */
     const char *command_name = "name";
-    const char *command_expect = "expect";
     const char *command_executable = "executable";
     const char *timeout_allowed = "timeout_allowed";
     const char *extra_args = "extra_args";
@@ -335,8 +334,6 @@ int ReadActiveCommands(XML_NODE node, void *d1, __attribute__((unused)) void *d2
             }
 
             tmp_command->name = strdup(node[i]->content);
-        } else if (strcmp(node[i]->element, command_expect) == 0) {
-            mdebug1("The <%s> tag is deprecated since version 4.2.0.", command_expect);
         } else if (strcmp(node[i]->element, command_executable) == 0) {
             tmp_command->executable = strdup(node[i]->content);
         } else if (strcmp(node[i]->element, timeout_allowed) == 0) {

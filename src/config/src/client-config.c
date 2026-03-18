@@ -55,10 +55,6 @@ int Read_Client(const OS_XML *xml, XML_NODE node, void *d1, __attribute__((unuse
             merror(XML_VALUENULL, node[i]->element);
             return (OS_INVALID);
         }
-        /* Get local IP */
-        else if (strcmp(node[i]->element, xml_local_ip) == 0) {
-            mwarn("The <%s> tag has no functionality, so it will have no effect.", xml_local_ip);
-        }
         /* Get manager IP */
         else if (strcmp(node[i]->element, xml_client_ip) == 0) {
             mwarn("The <%s> tag is deprecated, please use <manager><address> instead.", xml_client_ip);
@@ -137,8 +133,6 @@ int Read_Client(const OS_XML *xml, XML_NODE node, void *d1, __attribute__((unuse
                 merror(XML_VALUEERR, node[i]->element, node[i]->content);
                 return (OS_INVALID);
             }
-        } else if (strcmp(node[i]->element, "force_reconnect_interval") == 0) {
-            mwarn("Deprecated option 'force_reconnect_interval' is not longer available.");
         } else if (strcmp(node[i]->element, xml_main_ip_update_interval) == 0) {
             if (!OS_StrIsNum(node[i]->content)) {
                 merror(XML_VALUEERR, node[i]->element, node[i]->content);
@@ -213,8 +207,6 @@ int Read_Client_Shared(XML_NODE node, void *d1)
         } else if (!node[i]->content) {
             merror(XML_VALUENULL, node[i]->element);
             return (OS_INVALID);
-        } else if (strcmp(node[i]->element, "force_reconnect_interval") == 0) {
-            mwarn("Deprecated option 'force_reconnect_interval' is not longer available.");
         } else {
             merror(XML_INVELEM, node[i]->element);
             return (OS_INVALID);
