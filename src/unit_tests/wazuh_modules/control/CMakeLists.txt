@@ -7,7 +7,8 @@
 
 #include wrappers
 include(${SRC_FOLDER}/unit_tests/wrappers/wazuh/shared/shared.cmake)
-list(APPEND shared_libs "../../wrappers/wazuh/wazuh_modules/wm_control_wrappers.c")
+list(APPEND shared_libs "../../wrappers/wazuh/wazuh_modules/wm_control_wrappers.c"
+                        "${SRC_FOLDER}/wazuh_modules/src/wm_agent_control.c")
 
 # Tests list and flags
 list(APPEND tests_names "test_wm_control")
