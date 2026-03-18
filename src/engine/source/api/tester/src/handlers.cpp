@@ -111,7 +111,7 @@ parseAndValidatePublicMetadata(const google::protobuf::Struct& protoMetadata)
     if (!wazuhMetadataObject.has_value() || !wazuhMetadataObject->isObject() || !wazuhRootObjectOpt.has_value()
         || wazuhRootObjectOpt->isEmpty())
     {
-        return base::Error {"Metadata should contain 'wazuh' as root"};
+        return base::Error {"Metadata must be a non-empty object with 'wazuh' as root"};
     }
 
     return std::make_pair(std::move(metadata), std::move(wazuhMetadataObject.value()));
