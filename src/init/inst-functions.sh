@@ -1075,7 +1075,16 @@ InstallLocal()
 
     installGeoIP
 
-    ${INSTALL} -d -m 0750 -o ${WAZUH_USER} -g ${WAZUH_GROUP} ${INSTALLDIR}/queue/tzdb
+    ${INSTALL} -d -m 0750 -o ${WAZUH_USER} -g ${WAZUH_GROUP} ${INSTALLDIR}/data/tzdb
+    ${INSTALL} -d -m 0750 -o ${WAZUH_USER} -g ${WAZUH_GROUP} ${INSTALLDIR}/data/tzdb/iana
+
+    # Install TZDB from versioned external dependency if available
+    if [ -d "${SRC_DIR}/external/tzdb" ] && [ "$(ls -A ${SRC_DIR}/external/tzdb/ 2>/dev/null | grep -v VERSION | head -1)" ]; then
+        cp -rp ${SRC_DIR}/external/tzdb/iana/* ${INSTALLDIR}/data/tzdb/iana/ 2>/dev/null || true
+        if [ -f "${SRC_DIR}/external/tzdb/VERSION" ]; then
+            ${INSTALL} -m 0640 -o ${WAZUH_USER} -g ${WAZUH_GROUP} ${SRC_DIR}/external/tzdb/VERSION ${INSTALLDIR}/data/tzdb/VERSION
+        fi
+    fi
 
     ${INSTALL} -d -m 0750 -o ${WAZUH_USER} -g ${WAZUH_GROUP} ${INSTALLDIR}/queue/db
 

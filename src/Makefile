@@ -461,6 +461,16 @@ endif
 EXTERNAL_DIR := $(EXTERNAL_RES:%=external/%)
 EXTERNAL_TAR := $(EXTERNAL_RES:%=external/%.tar.gz)
 
+# TZDB (timezone database) — versioned external dependency for manager/server
+TZDB_DIR := external/tzdb
+TZDB_VERSION_FILE := $(TZDB_DIR)/VERSION
+TZDB_URL := $(RESOURCES_URL)/libraries/sources/tzdb.tar.gz
+ifneq (,$(filter manager server, ${TARGET}))
+TZDB_TAR := $(TZDB_DIR)/tzdb.tar.gz
+else
+TZDB_TAR :=
+endif
+
 # Shared tools like dependencies
 SHARED_RES := http-request
 SHARED_TAR := $(SHARED_RES:%=shared_modules/%.tar.gz)
@@ -520,7 +530,7 @@ endif
 INDEXER_TEMPLATE_FILES := $(INDEXER_TEMPLATES_STATES:%=$(INDEXER_PLUGINS_DIR)/%) $(INDEXER_TEMPLATES_STREAMS:%=$(INDEXER_PLUGINS_DIR)/%)
 
 .PHONY: deps
-deps: $(EXTERNAL_TAR) $(SHARED_TAR) $(INDEXER_TEMPLATE_FILES) $(WCS_FLAT_FILES)
+deps: $(EXTERNAL_TAR) $(SHARED_TAR) $(INDEXER_TEMPLATE_FILES) $(WCS_FLAT_FILES) $(TZDB_TAR)
 
 external/$(CPYTHON).tar.gz:
 # Python interpreter
@@ -571,6 +581,15 @@ external-precompiled/%.tar.gz:
 	-cd external && [ -f $(patsubst external-precompiled/%.gz,%,$@) ] && $(TAR) $(patsubst external-precompiled/%.gz,%,$@) || true
 	-[ -f external/$(patsubst external-precompiled/%.gz,%,$@) ] && rm external/$(patsubst external-precompiled/%.gz,%,$@) || true
 endif
+
+# TZDB download rule
+$(TZDB_DIR):
+	mkdir -p $(TZDB_DIR)
+
+$(TZDB_DIR)/tzdb.tar.gz: | $(TZDB_DIR)
+	$(CURL) $@ $(TZDB_URL)
+	cd $(TZDB_DIR) && $(GUNZIP) tzdb.tar.gz && $(TAR) --no-same-owner tzdb.tar && rm tzdb.tar
+	echo "$(DEPS_VERSION)" > $(TZDB_VERSION_FILE)
 
 # Shared tools
 HTTP_REQUEST_URL := https://github.com/wazuh/wazuh-http-request/tarball/$(HTTP_REQUEST_BRANCH)

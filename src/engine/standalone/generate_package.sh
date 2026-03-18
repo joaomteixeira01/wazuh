@@ -184,10 +184,23 @@ build_standalone() {
     # Create .keep files
     touch ${TEMP_DIR}/bin/lib/.keep
     touch ${TEMP_DIR}/data/kvdb/.keep
-    touch ${TEMP_DIR}/data/tzdb/.keep
     touch ${TEMP_DIR}/data/mmdb/.keep
     touch ${TEMP_DIR}/logs/.keep
     touch ${TEMP_DIR}/sockets/.keep
+
+    # Install TZDB from versioned external dependency if available
+    TZDB_SRC="${WAZUH_PATH}/src/external/tzdb"
+    if [ -d "${TZDB_SRC}/iana" ]; then
+        install -d -m 0770 ${TEMP_DIR}/data/tzdb/iana
+        cp -rp ${TZDB_SRC}/iana/* ${TEMP_DIR}/data/tzdb/iana/
+        if [ -f "${TZDB_SRC}/VERSION" ]; then
+            cp ${TZDB_SRC}/VERSION ${TEMP_DIR}/data/tzdb/VERSION
+        fi
+        echo "TZDB installed from versioned external dependency."
+    else
+        touch ${TEMP_DIR}/data/tzdb/.keep
+        echo "Warning: TZDB data not found in ${TZDB_SRC}. Standalone will ship without pre-installed TZDB."
+    fi
 
     # Copy schemas
     cp -r ${WAZUH_PATH}/src/engine/ruleset/schemas/engine-schema.json ${TEMP_DIR}/data/store/schema/engine-schema/0
