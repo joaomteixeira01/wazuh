@@ -16,12 +16,14 @@
 
 int Read_Cluster(const OS_XML *xml, XML_NODE node, void *d1, __attribute__((unused)) void *d2) {
 
+    static const char *disabled = "disabled";
     static const char *cluster_name = "name";
     static const char *node_name = "node_name";
     static const char *node_type = "node_type";
     static const char *key = "key";
     static const char *socket_timeout = "socket_timeout";
     static const char *connection_timeout = "connection_timeout";
+    static const char *interval = "interval";
     static const char *nodes = "nodes";
     static const char *hidden = "hidden";
     static const char *port = "port";
@@ -86,19 +88,17 @@ int Read_Cluster(const OS_XML *xml, XML_NODE node, void *d1, __attribute__((unus
             if (!strlen(node[i]->content)) {
                 merror("Node type is empty in configuration");
                 return OS_INVALID;
-            } else if (strcmp(node[i]->content, "worker") && strcmp(node[i]->content, "client") && strcmp(node[i]->content, "master") )  {
+            } else if (strcmp(node[i]->content, "worker") && strcmp(node[i]->content, "master") )  {
                 merror("Detected a not allowed node type '%s'. Valid types are 'master' and 'worker'.", node[i]->content);
                 return OS_INVALID;
             }
             os_free(Config->node_type);
-            if (strcmp(node[i]->content, "client") == 0) {
-                os_strdup("worker", Config->node_type);
-            } else {
-                os_strdup(node[i]->content, Config->node_type);
-            }
+            os_strdup(node[i]->content, Config->node_type);
         } else if (!strcmp(node[i]->element, key)) {
         } else if (!strcmp(node[i]->element, socket_timeout)) {
         } else if (!strcmp(node[i]->element, connection_timeout)) {
+        } else if (!strcmp(node[i]->element, disabled)) {
+            mwarn("Detected a deprecated configuration for cluster. The 'disabled' option is not longer available.");
         } else if (!strcmp(node[i]->element, hidden)) {
             if (strcmp(node[i]->content, "yes") == 0) {
                 Config->hide_cluster_info = 1;
@@ -108,6 +108,8 @@ int Read_Cluster(const OS_XML *xml, XML_NODE node, void *d1, __attribute__((unus
                 merror(XML_VALUEERR, node[i]->element, node[i]->content);
                 return OS_INVALID;
             }
+        } else if (!strcmp(node[i]->element, interval)) {
+            mwarn("Detected a deprecated configuration for cluster. The 'interval' option is not longer available.");
         } else if (!strcmp(node[i]->element, nodes)) {
         } else if (!strcmp(node[i]->element, port)) {
         } else if (!strcmp(node[i]->element, bind_addr)) {

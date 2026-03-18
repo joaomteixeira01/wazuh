@@ -199,7 +199,7 @@ void test_read_invalid_node_type(void **state) {
     assert_int_equal(Read_Cluster(&test_data->xml, test_data->nodes, &test_data->config, NULL), OS_INVALID);
 }
 
-void test_read_deprecated_client_value(void **state) {
+void test_read_invalid_client_node_type(void **state) {
     const char * configuration =
         "<name>wazuh</name>"
         "<node_name>node01</node_name>"
@@ -220,9 +220,8 @@ void test_read_deprecated_client_value(void **state) {
 
     test_structure *test_data = *state;
     test_data->nodes = string_to_xml_node(configuration, &(test_data->xml));
-    expect_string(__wrap__mwarn, formatted_msg, "Deprecated node type 'client'. Using 'worker' instead.");
-    assert_int_equal(Read_Cluster(&test_data->xml, test_data->nodes, &test_data->config, NULL), OS_SUCCESS);
-    assert_string_equal(test_data->config.node_type, "worker");
+    expect_string(__wrap__merror, formatted_msg, "Detected a not allowed node type 'client'. Valid types are 'master' and 'worker'.");
+    assert_int_equal(Read_Cluster(&test_data->xml, test_data->nodes, &test_data->config, NULL), OS_INVALID);
 }
 
 void test_read_deprecated_disabled_option(void **state) {
@@ -454,7 +453,7 @@ int main(void) {
         cmocka_unit_test_setup_teardown(test_read_invalid_characters_in_node_name, setup_test_read, teardown_test_read),
         cmocka_unit_test_setup_teardown(test_read_empty_node_type, setup_test_read, teardown_test_read),
         cmocka_unit_test_setup_teardown(test_read_invalid_node_type, setup_test_read, teardown_test_read),
-        cmocka_unit_test_setup_teardown(test_read_deprecated_client_value, setup_test_read, teardown_test_read),
+        cmocka_unit_test_setup_teardown(test_read_invalid_client_node_type, setup_test_read, teardown_test_read),
         cmocka_unit_test_setup_teardown(test_read_deprecated_disabled_option, setup_test_read, teardown_test_read),
         cmocka_unit_test_setup_teardown(test_read_deprecated_interval_option, setup_test_read, teardown_test_read),
         cmocka_unit_test_setup_teardown(test_read_valid_configuration, setup_test_read, teardown_test_read),
